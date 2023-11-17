@@ -9,15 +9,11 @@ function getColor(color = "") {
 const Track = () => {
   const dpr = 30
   const [tracks, setTracks] = useState(testdata);
-  const [result, setResult] = useState([])
+  const [result, setResult] = useState({ nonOverlap: [], overlap: [], singleTrack: [] })
   const [clips, setClips] = useState([])
   useEffect(() => {
-    console.time('calc-overlap')
     const res = calculateOverlap(tracks)
-    console.timeEnd('calc-overlap')
-    console.time('calc-clips')
     const clips = computedWords(res)
-    console.timeEnd('calc-clips')
     setResult(res)
     setClips(clips)
   }, [tracks])
@@ -66,31 +62,31 @@ const Track = () => {
       </div>
       <div className="rule-content">
         {
-          result.overlap ? result.overlap.map(((r, index) => {
+          result.overlap.map(((r, index) => {
             return <div key={index} className='rule-item rule-item-overlap' style={{ width: (r.timeRange[1] - r.timeRange[0]) * dpr, left: r.timeRange[0] * dpr }}>
               <span>最大重合区间</span>
               <span className='mergetext'>{r.mergeWords}</span>
             </div>
-          })) : ''
+          }))
         }
       </div>
       <div className="rule-content">
         {
-          result.nonOverlap ? result.nonOverlap.map(((r, index) => {
+          result.nonOverlap.map(((r, index) => {
             return <div key={index} className='rule-item rule-item-nonOverlap' style={{ width: (r.timeRange[1] - r.timeRange[0]) * dpr, left: r.timeRange[0] * dpr }}>
               <span>空白</span>
             </div>
-          })) : ''
+          }))
         }
       </div>
       <div className="rule-content">
         {
-          result.singleTrack ? result.singleTrack.map(((r, index) => {
+          result.singleTrack.map(((r, index) => {
             return <div key={index} className='rule-item rule-item-singleTrack' style={{ width: (r.timeRange[1] - r.timeRange[0]) * dpr, left: r.timeRange[0] * dpr }}>
               <span>单轨</span>
               <span className='mergetext'>{r.mergeWords}</span>
             </div>
-          })) : ''
+          }))
         }
       </div>
       <div className='clips'>
