@@ -27,14 +27,15 @@ const calculateOverlap = (tracks, startTimeFlag, endTimeFlag) => {
   let currentStartNode = null; // 记录重叠开始的时间
 
   points.forEach(point => {
+    point.node.gapwords = []
     if (cursor === 0 && lastEndNode && lastEndNode.time < point.time) {
       nonOverlap.push({
         startNode: lastEndNode.node,
         endNode: point.node,
         timeRange: [lastEndNode.time, point.time]
       });
-      // 添加空白词
-      lastEndNode.gapwords = { text: "[gap]", s: lastEndNode.time, t: point.time, type: 'gap' }
+      // 给句子跟空白词，此处不给words添加，会导致计算故障
+      lastEndNode.node.gapwords = [{ text: "[gap]", s: lastEndNode.time, t: point.time, type: 'gap' }]
     }
     if (point.type === 'start') {
       cursor++;
@@ -75,7 +76,8 @@ const calculateOverlap = (tracks, startTimeFlag, endTimeFlag) => {
 
 const combineWords = (overlapNodes = []) => {
   const words = overlapNodes.reduce((ovelap, cur) => {
-    ovelap.push([...cur.words, ...(cur.gapwords ? [cur.gapwords] : [])])
+    const gapWord = cur.gapwords
+    ovelap.push(...[...cur.words, ...gapWord])
     return ovelap
   }, [])
   return words.sort((a, b) => a.s - b.s)
@@ -85,16 +87,14 @@ const mergeDiff = (words = []) => {
   let result = []
   let preWord = null
   words.forEach((word, index) => {
-    if (word.type && word.type !== 'gap') {
-      if (index === 0) {
-        preWord = word
+    if (index === 0) {
+      preWord = word
+    } else {
+      if (word.s < preWord.t) {
+        result.push({ ...word, text: `[${word.text}]` })
+        return
       } else {
-        if (word.s < preWord.t) {
-          result.push({ ...word, text: `[${word.text}]` })
-          return
-        } else {
-          preWord = word
-        }
+        preWord = word
       }
     }
     result.push(word)
@@ -114,9 +114,11 @@ const computedWords = (result) => {
     })
   })
   result.singleTrack.forEach((single) => {
-    single.mergeWords = single.startNode.words.map(t => t.text).join(' ')
+    const gapWord = single.startNode.gapwords
+    const words = [...single.startNode.words, ...gapWord]
+    single.mergeWords = words.map(t => t.text).join(' ')
     clip.push({
-      words: [...single.startNode.words, ...(single.startNode.gapwords ? [single.startNode.gapwords] : [])],
+      words: [...single.startNode.words, ...gapWord],
       startTime: single.startNode.startTime,
       endTime: single.startNode.endTime
     })

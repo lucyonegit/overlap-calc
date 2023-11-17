@@ -92,7 +92,13 @@ const Track = () => {
       <div className='clips'>
         {
           clips.map((clip, index) => {
-            return <p key={index}>{index + 1} {clip.words.map(t => t.text).join(' ')}</p>
+            return (
+              <p key={index} >
+                {index + 1} {
+                  <span>{clip.words.map(t => <span style={{ background: t.type === 'gap' ? '#000' : '', color: t.type === 'gap' ? '#fff' : '' }}>{t.text}</span>)}</span>
+                }
+              </p>
+            )
           })
         }
       </div>
