@@ -1,84 +1,84 @@
 const calculateOverlap = (tracks, startTimeFlag, endTimeFlag) => {
   const startTime = startTimeFlag || 'startTime'
   const endTime = endTimeFlag || 'endTime'
-  let points = [];
+  let timePoints = [];
   tracks.forEach(track => {
     track.forEach(segment => {
-      points.push({ time: segment[startTime], type: 'start', node: segment });
-      points.push({ time: segment[endTime], type: 'end', node: segment });
+      timePoints.push({ time: segment[startTime], type: 'start', sentence: segment });
+      timePoints.push({ time: segment[endTime], type: 'end', sentence: segment });
     });
   });
 
-  points.sort((a, b) => a.time - b.time);
+  timePoints.sort((a, b) => a.time - b.time);
 
   // 扫描光标位置
   let cursor = 0;
 
   //计算非重叠区间
   let nonOverlap = [];
-  let lastEndNode = null;
+  let preSentence = null;
 
   //计算最大重叠区间
   let overlap = [];
   // 单轨区间
   let singleTrack = []
-  let overlapNodes = []
-  let maxOverlap = 0  //重合次数
-  let currentStartNode = null; // 记录重叠开始的时间
+  let overlapSentences = []
+  let maxOverlapCount = 0  //重合次数
+  let currentStartPoint = null; // 记录重叠开始的时间
 
-  points.forEach(point => {
-    point.node.gapwords = []
-    if (cursor === 0 && lastEndNode && lastEndNode.time < point.time) {
+  timePoints.forEach(point => {
+    point.sentence.gapwords = []
+    if (cursor === 0 && preSentence && preSentence.time < point.time) {
       nonOverlap.push({
-        startNode: lastEndNode.node,
-        endNode: point.node,
-        timeRange: [lastEndNode.time, point.time]
+        startSentence: preSentence.sentence,
+        endSentence: point.sentence,
+        timeRange: [preSentence.time, point.time]
       });
       // 给句子跟空白词，此处不给words添加，会导致计算故障
-      lastEndNode.node.gapwords = [{ text: "[gap]", s: lastEndNode.time, t: point.time, type: 'gap' }]
+      preSentence.sentence.gapwords = [{ text: "[gap]", s: preSentence.time, t: point.time, type: 'gap' }]
     }
     if (point.type === 'start') {
       cursor++;
-      maxOverlap++
+      maxOverlapCount++
       if (cursor === 1) {
-        currentStartNode = point;
+        currentStartPoint = point;
       }
-      overlapNodes.push(point.node)
+      overlapSentences.push(point.sentence)
     } else {
       cursor--;
       if (cursor === 0) {
-        if (maxOverlap === 1) {
+        if (maxOverlapCount === 1) {
           singleTrack.push({
-            startNode: currentStartNode.node,
-            endNode: point.node,
-            timeRange: [currentStartNode.time, point.time]
+            startSentence: currentStartPoint.sentence,
+            endSentence: point.sentence,
+            timeRange: [currentStartPoint.time, point.time]
           })
         }
         // 排除只有单个轨道，不与其他任何轨道重合的情况
-        if (maxOverlap !== 1) {
+        if (maxOverlapCount !== 1) {
           overlap.push({
-            startNode: currentStartNode.node,
-            endNode: point.node,
-            maxOverlap,
-            overlapNodes,
-            timeRange: [currentStartNode.time, point.time]
+            startSentence: currentStartPoint.sentence,
+            endSentence: point.sentence,
+            maxOverlapCount,
+            overlapSentences,
+            timeRange: [currentStartPoint.time, point.time]
           });
         }
         // 下一次计算重合之前置空计数
-        maxOverlap = 0
-        overlapNodes = []
+        maxOverlapCount = 0
+        overlapSentences = []
       }
     }
-    lastEndNode = point;
+    preSentence = point;
   });
   return { nonOverlap, overlap, singleTrack };
 }
 
-const combineWords = (overlapNodes = []) => {
-  const words = overlapNodes.reduce((ovelap, cur) => {
+const combineWords = (overlapSentences = []) => {
+  const words = overlapSentences.reduce((sentence, cur) => {
     const gapWord = cur.gapwords
-    ovelap.push(...[...cur.words, ...gapWord])
-    return ovelap
+    sentence.push(...[...cur.words, ...gapWord])
+    return sentence
   }, [])
   return words.sort((a, b) => a.s - b.s)
 }
@@ -105,22 +105,22 @@ const mergeDiff = (words = []) => {
 const computedWords = (result) => {
   let clip = []
   result.overlap.forEach(ovelap => {
-    const mergeWords = mergeDiff(combineWords(ovelap.overlapNodes))
+    const mergeWords = mergeDiff(combineWords(ovelap.overlapSentences))
     ovelap.mergeWords = mergeWords.map(t => t.text).join(' ')
     clip.push({
       words: mergeWords,
-      startTime: ovelap.startNode.startTime,
-      endTime: ovelap.endNode.endTime
+      startTime: ovelap.startSentence.startTime,
+      endTime: ovelap.endSentence.endTime
     })
   })
   result.singleTrack.forEach((single) => {
-    const gapWord = single.startNode.gapwords
-    const words = [...single.startNode.words, ...gapWord]
+    const gapWord = single.startSentence.gapwords
+    const words = [...single.startSentence.words, ...gapWord]
     single.mergeWords = words.map(t => t.text).join(' ')
     clip.push({
-      words: [...single.startNode.words, ...gapWord],
-      startTime: single.startNode.startTime,
-      endTime: single.startNode.endTime
+      words: [...single.startSentence.words, ...gapWord],
+      startTime: single.startSentence.startTime,
+      endTime: single.startSentence.endTime
     })
   })
   return clip.sort((a, b) => a.startTime - b.startTime)
