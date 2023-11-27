@@ -16,8 +16,11 @@ const mockdata = [
   ],
   [
     {
-      startTime: 18, endTime: 25, words: [
-        { text: "空", s: 18, t: 25 }
+      startTime: 18, endTime: 22, words: [
+        { text: "空", s: 18, t: 19 },
+        { text: "空", s: 19, t: 20 },
+        { text: "如", s: 20, t: 21 },
+        { text: "也", s: 21, t: 22 }
       ]
     },
     {

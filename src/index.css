@@ -79,7 +79,8 @@ body,html{
   background-color: rgb(0, 17, 255);
 }
 .rule-item-nonOverlap{
-  border: 2px dashed;
+  border: 1px dashed;
+  box-sizing: border-box;
   color: #000;
   border-color: rgb(255, 98, 0);
 }

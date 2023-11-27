@@ -28,14 +28,14 @@ const calculateOverlap = (tracks, startTimeFlag, endTimeFlag) => {
 
   timePoints.forEach(point => {
     point.sentence.gapwords = []
-    if (cursor === 0 && preSentence && preSentence.time < point.time) {
+    if (cursor === 0 && preSentence && preSentence.time <= point.time) {
       nonOverlap.push({
         startSentence: preSentence.sentence,
         endSentence: point.sentence,
         timeRange: [preSentence.time, point.time]
       });
       // 给句子跟空白词，此处不给words添加，会导致计算故障
-      preSentence.sentence.gapwords = [{ text: "[gap]", s: preSentence.time, t: point.time, type: 'gap' }]
+      preSentence.sentence.gapwords = [{ text: `[${(point.time - preSentence.time).toFixed(1)}s]`, s: preSentence.time, t: point.time, type: 'gap' }]
     }
     if (point.type === 'start') {
       cursor++;
